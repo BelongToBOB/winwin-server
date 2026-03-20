@@ -21,11 +21,13 @@ export class RegistrantsService {
     return this.prisma.$queryRaw`
       INSERT INTO registrants
         (first_name, last_name, nickname, email, phone,
-         job_category, job_other, source_channel)
+         job_category, job_other, source_channel,
+         created_at, updated_at)
       VALUES
         (${first_name ?? null}, ${last_name ?? null}, ${nickname ?? null},
          ${email ?? null}, ${phone ?? null}, ${job_category ?? null},
-         ${job_other ?? null}, ${source_channel ?? null})
+         ${job_other ?? null}, ${source_channel ?? null},
+         NOW(), NOW())
       RETURNING *
     `
   }
