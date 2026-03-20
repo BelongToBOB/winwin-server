@@ -48,4 +48,24 @@ export class CrmService {
       LIMIT 100
     `
   }
+
+  async updateContact(id: string, data: {
+    crm_stage?: string
+    assigned_to?: string
+    notes?: string
+    next_followup?: string
+    last_contacted?: string
+  }) {
+    const { crm_stage, assigned_to, notes,
+            next_followup, last_contacted } = data
+    return this.prisma.$queryRaw`
+      UPDATE contacts SET
+        crm_stage = COALESCE(${crm_stage ?? null}, crm_stage),
+        assigned_to = COALESCE(${assigned_to ?? null}, assigned_to),
+        notes = COALESCE(${notes ?? null}, notes),
+        next_followup = COALESCE(${next_followup ?? null}::timestamptz, next_followup),
+        last_contacted = COALESCE(${last_contacted ?? null}::timestamptz, last_contacted)
+      WHERE id = ${id}::uuid RETURNING *
+    `
+  }
 }

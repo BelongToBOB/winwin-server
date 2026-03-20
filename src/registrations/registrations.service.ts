@@ -45,4 +45,24 @@ export class RegistrationsService {
       LIMIT 100
     `
   }
+
+  async updateStatus(id: string, reg_status: string) {
+    return this.prisma.$queryRaw`
+      UPDATE registrations SET reg_status = ${reg_status}
+      WHERE id = ${id}::uuid RETURNING *
+    `
+  }
+
+  async remove(id: string) {
+    await this.prisma.$queryRaw`
+      DELETE FROM registration_profiles WHERE registration_id = ${id}::uuid
+    `
+    await this.prisma.$queryRaw`
+      DELETE FROM payments WHERE registration_id = ${id}::uuid
+    `
+    await this.prisma.$queryRaw`
+      DELETE FROM registrations WHERE id = ${id}::uuid
+    `
+    return { deleted: true }
+  }
 }

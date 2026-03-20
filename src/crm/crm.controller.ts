@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common'
+import { Controller, Get, Patch, Query, Param, Body } from '@nestjs/common'
 import { CrmService } from './crm.service'
 
 @Controller('crm')
@@ -16,5 +16,10 @@ export class CrmController {
     @Query('overdue_only') overdueOnly?: string,
   ) {
     return this.crmService.getFollowups(seminarId, overdueOnly)
+  }
+
+  @Patch('contacts/:id')
+  updateContact(@Param('id') id: string, @Body() body: any) {
+    return this.crmService.updateContact(id, body)
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common'
+import { Controller, Get, Patch, Delete, Param, Query, Body } from '@nestjs/common'
 import { RegistrationsService } from './registrations.service'
 
 @Controller('registrations')
@@ -20,5 +20,15 @@ export class RegistrationsController {
       loan_range: loanRange,
       q,
     })
+  }
+
+  @Patch(':id')
+  updateStatus(@Param('id') id: string, @Body() body: { reg_status: string }) {
+    return this.registrationsService.updateStatus(id, body.reg_status)
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.registrationsService.remove(id)
   }
 }
