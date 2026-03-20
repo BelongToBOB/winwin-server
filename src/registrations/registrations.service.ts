@@ -23,6 +23,7 @@ export class RegistrationsService {
     return this.prisma.$queryRaw<any[]>`
       SELECT
         r.id::text,
+        re.id::text AS registrant_id,
         re.first_name, re.last_name, re.nickname,
         re.email, re.phone, re.job_category,
         rp.channels, rp.loan_amount_range,
@@ -43,6 +44,19 @@ export class RegistrationsService {
           re.email ILIKE '%' || ${search} || '%')
       ORDER BY r.registered_at DESC
       LIMIT 100
+    `
+  }
+
+  async create(data: {
+    registrant_id: string
+    seminar_id: string
+    reg_status?: string
+  }) {
+    const { registrant_id, seminar_id, reg_status } = data
+    return this.prisma.$queryRaw`
+      INSERT INTO registrations (registrant_id, seminar_id, reg_status)
+      VALUES (${registrant_id}::uuid, ${seminar_id}, ${reg_status ?? 'pending'})
+      RETURNING *
     `
   }
 

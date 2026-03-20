@@ -6,6 +6,18 @@ import { Prisma } from '@prisma/client'
 export class CourseEventsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findAll() {
+    return this.prisma.$queryRaw<any[]>`
+      SELECT
+        id::text, seminar_id, course_name, course_type,
+        event_date::text, venue, delivery_mode,
+        max_seats, price::float, status,
+        (SELECT COUNT(*)::int FROM registrations WHERE seminar_id = ce.seminar_id) AS total_registrations
+      FROM course_events ce
+      ORDER BY event_date DESC NULLS LAST
+    `
+  }
+
   async create(data: {
     seminar_id: string
     course_name: string

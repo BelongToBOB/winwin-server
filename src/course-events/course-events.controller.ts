@@ -1,9 +1,14 @@
-import { Controller, Post, Patch, Delete, Param, Body } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common'
 import { CourseEventsService } from './course-events.service'
 
 @Controller('course-events')
 export class CourseEventsController {
   constructor(private readonly courseEventsService: CourseEventsService) {}
+
+  @Get()
+  findAll() {
+    return this.courseEventsService.findAll()
+  }
 
   @Post()
   create(@Body() body: any) {

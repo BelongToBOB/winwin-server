@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Delete, Param, Query, Body } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body } from '@nestjs/common'
 import { RegistrationsService } from './registrations.service'
 
 @Controller('registrations')
@@ -20,6 +20,11 @@ export class RegistrationsController {
       loan_range: loanRange,
       q,
     })
+  }
+
+  @Post()
+  create(@Body() body: any) {
+    return this.registrationsService.create(body)
   }
 
   @Patch(':id')
