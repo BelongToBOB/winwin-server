@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model CourseEvent {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seminarId    String         @unique @map("seminar_id") @db.VarChar(50)
+  courseName   String         @map("course_name") @db.VarChar(255)
+  courseType   String?        @map("course_type") @db.VarChar(50)
+  eventDate    DateTime?      @map("event_date") @db.Date
+  venue        String?        @db.VarChar(255)
+  deliveryMode String?        @map("delivery_mode") @db.VarChar(50)
+  maxSeats     Int?           @map("max_seats")
+  price        Decimal?       @db.Decimal(10, 2)
+  currency     String?        @default("THB") @db.VarChar(3)
+  status       String         @default("upcoming") @db.VarChar(50)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  registrations Registration[]
+
+  @@map("course_events")
+}
+
+model Registrant {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firstName     String?        @map("first_name") @db.VarChar(100)
+  lastName      String?        @map("last_name") @db.VarChar(100)
+  nickname      String?        @db.VarChar(100)
+  email         String?        @db.VarChar(255)
+  phone         String?        @db.VarChar(50)
+  jobCategory   String?        @map("job_category") @db.VarChar(100)
+  jobOther      String?        @map("job_other")
+  sourceChannel String?        @map("source_channel") @db.VarChar(100)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  registrations Registration[]
+  contact       Contact?
+
+  @@map("registrants")
+}
+
+model Registration {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId       String               @map("event_id") @db.Uuid
+  registrantId  String               @map("registrant_id") @db.Uuid
+  seminarId     String               @map("seminar_id") @db.VarChar(50)
+  regStatus     String               @default("pending") @map("reg_status") @db.VarChar(50)
+  formPayload   Json?                @map("form_payload")
+  registeredAt  DateTime?            @map("registered_at")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  event         CourseEvent          @relation(fields: [eventId], references: [id])
+  registrant    Registrant           @relation(fields: [registrantId], references: [id])
+  profile       RegistrationProfile?
+  payment       Payment?
+  webhookLog    WebhookLog?
+
+  @@unique([eventId, registrantId])
+  @@map("registrations")
+}
+
+model RegistrationProfile {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrationId  String       @unique @map("registration_id") @db.Uuid
+  loanBefore      Boolean?     @map("loan_before")
+  creditBanks     String?      @map("credit_banks")
+  loanAmountRange String?      @map("loan_amount_range") @db.VarChar(50)
+  channels        String?
+  objective       String?
+  loanProblems    String?      @map("loan_problems")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  registration    Registration @relation(fields: [registrationId], references: [id])
+
+  @@map("registration_profiles")
+}
+
+model Payment {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrationId String       @unique @map("registration_id") @db.Uuid
+  amount         Decimal?     @db.Decimal(10, 2)
+  currency       String?      @default("THB") @db.VarChar(3)
+  method         String?      @db.VarChar(50)
+  status         String?      @default("pending") @db.VarChar(50)
+  referenceNo    String?      @map("reference_no") @db.VarChar(255)
+  paidAt         DateTime?    @map("paid_at")
+  registration   Registration @relation(fields: [registrationId], references: [id])
+
+  @@map("payments")
+}
+
+model Contact {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrantId  String        @unique @map("registrant_id") @db.Uuid
+  crmStage      String        @default("new") @map("crm_stage") @db.VarChar(100)
+  assignedTo    String?       @map("assigned_to") @db.VarChar(100)
+  notes         String?
+  lastContacted DateTime?     @map("last_contacted")
+  nextFollowup  DateTime?     @map("next_followup")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  registrant    Registrant    @relation(fields: [registrantId], references: [id])
+  interactions  Interaction[]
+
+  @@map("contacts")
+}
+
+model Interaction {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contactId    String    @map("contact_id") @db.Uuid
+  channel      String?   @db.VarChar(50)
+  direction    String?   @db.VarChar(10)
+  content      String?
+  outcome      String?   @db.VarChar(100)
+  interactedAt DateTime  @default(now()) @map("interacted_at")
+  createdBy    String?   @map("created_by") @db.VarChar(100)
+  contact      Contact   @relation(fields: [contactId], references: [id])
+
+  @@map("interactions")
+}
+
+model WebhookLog {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seminarId          String?       @map("seminar_id") @db.VarChar(50)
+  rawPayload         Json          @map("raw_payload")
+  status             String        @default("received") @db.VarChar(50)
+  linkedRegistration String?       @unique @map("linked_registration") @db.Uuid
+  receivedAt         DateTime      @default(now()) @map("received_at")
+  errorMsg           String?       @map("error_msg")
+  registration       Registration? @relation(fields: [linkedRegistration], references: [id])
+
+  @@map("webhook_logs")
+}
