@@ -49,13 +49,20 @@ export class RegistrationsService {
 
   async create(data: {
     registrant_id: string
+    event_id: string
     seminar_id: string
     reg_status?: string
   }) {
-    const { registrant_id, seminar_id, reg_status } = data
+    const { registrant_id, event_id, seminar_id, reg_status } = data
     return this.prisma.$queryRaw`
-      INSERT INTO registrations (registrant_id, seminar_id, reg_status)
-      VALUES (${registrant_id}::uuid, ${seminar_id}, ${reg_status ?? 'pending'})
+      INSERT INTO registrations (event_id, registrant_id, seminar_id, reg_status, registered_at)
+      VALUES (
+        ${event_id}::uuid,
+        ${registrant_id}::uuid,
+        ${seminar_id},
+        ${reg_status ?? 'pending'},
+        NOW()
+      )
       RETURNING *
     `
   }
