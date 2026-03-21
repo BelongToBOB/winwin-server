@@ -5,6 +5,28 @@ import { PrismaService } from '../prisma/prisma.service'
 export class RegistrationProfilesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async create(data: {
+    registration_id: string
+    loan_before?: boolean
+    credit_banks?: string
+    loan_amount_range?: string
+    channels?: string
+    objective?: string
+    loan_problems?: string
+  }) {
+    const { registration_id, loan_before, credit_banks,
+            loan_amount_range, channels, objective, loan_problems } = data
+    return this.prisma.$queryRaw`
+      INSERT INTO registration_profiles
+        (registration_id, loan_before, credit_banks, loan_amount_range,
+         channels, objective, loan_problems)
+      VALUES
+        (${registration_id}::uuid, ${loan_before},  ${credit_banks},
+         ${loan_amount_range}, ${channels}, ${objective}, ${loan_problems})
+      RETURNING *
+    `
+  }
+
   async update(registrationId: string, data: {
     loan_before?: boolean
     credit_banks?: string
