@@ -10,6 +10,11 @@ export class CourseEventsController {
     return this.courseEventsService.findAll()
   }
 
+  @Get('by-seminar/:seminarId')
+  findBySeminar(@Param('seminarId') seminarId: string) {
+    return this.courseEventsService.findBySeminarId(seminarId)
+  }
+
   @Post()
   create(@Body() body: any) {
     return this.courseEventsService.create(body)

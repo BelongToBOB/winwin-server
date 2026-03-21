@@ -18,6 +18,14 @@ export class CourseEventsService {
     `
   }
 
+  async findBySeminarId(seminarId: string) {
+    return this.prisma.$queryRaw`
+      SELECT * FROM course_events
+      WHERE seminar_id = ${seminarId}
+      LIMIT 1
+    `
+  }
+
   async create(data: {
     seminar_id: string
     course_name: string
