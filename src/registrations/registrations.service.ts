@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 
 interface RegistrationsFilters {
@@ -54,17 +54,24 @@ export class RegistrationsService {
     reg_status?: string
   }) {
     const { registrant_id, event_id, seminar_id, reg_status } = data
-    return this.prisma.$queryRaw`
-      INSERT INTO registrations (event_id, registrant_id, seminar_id, reg_status, registered_at)
-      VALUES (
-        ${event_id}::uuid,
-        ${registrant_id}::uuid,
-        ${seminar_id},
-        ${reg_status ?? 'pending'},
-        NOW()
-      )
-      RETURNING *
-    `
+    try {
+      return await this.prisma.$queryRaw`
+        INSERT INTO registrations (event_id, registrant_id, seminar_id, reg_status, registered_at)
+        VALUES (
+          ${event_id}::uuid,
+          ${registrant_id}::uuid,
+          ${seminar_id},
+          ${reg_status ?? 'pending'},
+          NOW()
+        )
+        RETURNING *
+      `
+    } catch (err: any) {
+      if (err?.cause?.code === '22P02' || err?.message?.includes('invalid input syntax for type uuid')) {
+        throw new BadRequestException('Invalid UUID format for registrant_id or event_id')
+      }
+      throw err
+    }
   }
 
   async updateStatus(id: string, reg_status: string) {

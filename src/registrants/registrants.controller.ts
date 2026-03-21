@@ -1,4 +1,4 @@
-import { Controller, Post, Patch, Delete, Param, Body } from '@nestjs/common'
+import { Controller, Post, Patch, Delete, Param, Body, BadRequestException } from '@nestjs/common'
 import { RegistrantsService } from './registrants.service'
 
 @Controller('registrants')
@@ -7,6 +7,9 @@ export class RegistrantsController {
 
   @Post()
   create(@Body() body: any) {
+    if (!body?.first_name && !body?.last_name) {
+      throw new BadRequestException('first_name or last_name is required')
+    }
     return this.registrantsService.create(body)
   }
 

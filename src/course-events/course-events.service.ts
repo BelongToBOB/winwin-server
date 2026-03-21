@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { Prisma } from '@prisma/client'
 
 @Injectable()
 export class CourseEventsService {
@@ -61,13 +60,21 @@ export class CourseEventsService {
     price: number
     status: string
   }>) {
-    const fields = Object.entries(data)
-      .filter(([, v]) => v !== undefined)
-      .map(([k, v]) => `${k} = '${v}'`)
-      .join(', ')
+    const { course_name, course_type, event_date, venue,
+            delivery_mode, max_seats, price, status } = data
     return this.prisma.$queryRaw`
-      UPDATE course_events SET ${Prisma.raw(fields)}
-      WHERE id = ${id}::uuid RETURNING *
+      UPDATE course_events SET
+        course_name = COALESCE(${course_name ?? null}, course_name),
+        course_type = COALESCE(${course_type ?? null}, course_type),
+        event_date = COALESCE(${event_date ?? null}::date, event_date),
+        venue = COALESCE(${venue ?? null}, venue),
+        delivery_mode = COALESCE(${delivery_mode ?? null}, delivery_mode),
+        max_seats = COALESCE(${max_seats ?? null}, max_seats),
+        price = COALESCE(${price ?? null}, price),
+        status = COALESCE(${status ?? null}, status),
+        updated_at = NOW()
+      WHERE id = ${id}::uuid
+      RETURNING *
     `
   }
 

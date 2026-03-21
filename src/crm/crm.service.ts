@@ -16,7 +16,7 @@ export class CrmService {
 
   async getFollowups(seminarId?: string, overdueOnly?: string) {
     const sid = seminarId || null
-    const overdue = overdueOnly === 'true' ? true : null
+    const overdue = (overdueOnly === 'true' || overdueOnly === '1') ? true : null
 
     return this.prisma.$queryRaw<any[]>`
       SELECT

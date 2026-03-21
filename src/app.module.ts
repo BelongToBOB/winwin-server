@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { PrismaModule } from './prisma/prisma.module'
+import { HealthModule } from './health/health.module'
 import { OverviewModule } from './overview/overview.module'
 import { RegistrationsModule } from './registrations/registrations.module'
 import { CrmModule } from './crm/crm.module'
@@ -13,6 +14,7 @@ import { InteractionsModule } from './interactions/interactions.module'
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    HealthModule,
     PrismaModule,
     OverviewModule,
     RegistrationsModule,
