@@ -126,17 +126,14 @@ export class BucService {
     customer_email?: string
   }): Promise<any> {
     const easySlipKey = process.env.EASYSLIP_API_KEY
-    const isSandbox = process.env.EASYSLIP_SANDBOX === 'true'
     const minAmount = Number(process.env.MIN_PAYMENT_AMOUNT || 4990)
 
-    const apiUrl = isSandbox
-      ? 'https://developer.easyslip.com/api/v1/verify'
-      : 'https://api.easyslip.com/api/v1/verify'
+    const apiUrl = 'https://api.easyslip.com/v2/verify/bank/base64'
 
     try {
       const response = await axios.post(
         apiUrl,
-        { image: data.slip_image },
+        { base64: data.slip_image },
         {
           headers: {
             Authorization: `Bearer ${easySlipKey}`,
@@ -146,8 +143,15 @@ export class BucService {
       )
 
       const slip = response.data
-      const amount = slip?.data?.amount?.amount || 0
-      const transRef = slip?.data?.transRef || ''
+      const rawSlip = slip?.data?.rawSlip
+      const amount = rawSlip?.amount?.amount || 0
+      const transRef = rawSlip?.transRef || ''
+
+      // Log sender/receiver info for visibility
+      const senderBank = rawSlip?.sender?.bank?.short
+      const receiverBank = rawSlip?.receiver?.bank?.short
+      const senderName = rawSlip?.sender?.account?.name?.th
+      console.log(`[EasySlip] transRef=${transRef} amount=${amount} from=${senderName}(${senderBank}) to=${receiverBank}`)
 
       if (amount < minAmount) {
         return {
@@ -192,16 +196,16 @@ export class BucService {
       }
     } catch (err: any) {
       if (err?.response?.status === 400 || err?.response?.status === 404) {
-        return {
-          success: false,
-          error: 'ไม่สามารถอ่านสลิปได้ กรุณาตรวจสอบรูปภาพและลองใหม่',
-        }
+        return { success: false, error: 'ไม่สามารถอ่านสลิปได้ กรุณาตรวจสอบรูปภาพและลองใหม่' }
       }
       if (err?.response?.status === 401) {
-        return {
-          success: false,
-          error: 'เกิดข้อผิดพลาดในระบบ กรุณาติดต่อแอดมิน (401)',
-        }
+        return { success: false, error: 'เกิดข้อผิดพลาดในระบบ (401)' }
+      }
+      if (err?.response?.status === 422) {
+        return { success: false, error: 'สลิปไม่ถูกต้องหรือหมดอายุ' }
+      }
+      if (err?.response?.status === 429) {
+        return { success: false, error: 'ระบบยุ่งอยู่ กรุณาลองใหม่อีกครั้ง' }
       }
       throw err
     }
