@@ -22,9 +22,24 @@ export class ReportController {
     @Res() res: Response,
   ) {
     const rows = await this.reportService.getPreview(seminarId, type)
-    res.header('Content-Type', 'text/csv; charset=utf-8')
-    res.header('Content-Disposition', `attachment; filename="report-${type}.csv"`)
-    const csv = 'metric,value\n' + rows.map((r) => `"${r.metric}","${r.value}"`).join('\n')
+    res.header('Content-Type', 'text/csv; charset=utf-8-sig')
+    res.header('Content-Disposition', `attachment; filename="report-${type}-${seminarId}.csv"`)
+    if (!rows.length) {
+      res.send('\uFEFF')
+      return
+    }
+    const headers = Object.keys(rows[0])
+    const csv =
+      '\uFEFF' +
+      headers.join(',') +
+      '\n' +
+      rows
+        .map((r) =>
+          headers
+            .map((h) => `"${(r[h] ?? '').toString().replace(/"/g, '""')}"`)
+            .join(','),
+        )
+        .join('\n')
     res.send(csv)
   }
 }
