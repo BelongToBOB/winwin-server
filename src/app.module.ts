@@ -10,6 +10,7 @@ import { CourseEventsModule } from './course-events/course-events.module'
 import { RegistrantsModule } from './registrants/registrants.module'
 import { RegistrationProfilesModule } from './registration-profiles/registration-profiles.module'
 import { InteractionsModule } from './interactions/interactions.module'
+import { BucModule } from './buc/buc.module'
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { InteractionsModule } from './interactions/interactions.module'
     RegistrantsModule,
     RegistrationProfilesModule,
     InteractionsModule,
+    BucModule,
   ],
 })
 export class AppModule {}
