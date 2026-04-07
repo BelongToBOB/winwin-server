@@ -25,6 +25,11 @@ export class BucController {
     return this.bucService.verifyPayment(body)
   }
 
+  @Post('submit')
+  submitRegistration(@Body() body: any) {
+    return this.bucService.submitRegistration(body)
+  }
+
   @Post('webhook/payment')
   createFromPayment(@Body() body: any) {
     return this.bucService.createFromPayment(body)

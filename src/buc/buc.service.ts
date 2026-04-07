@@ -277,4 +277,53 @@ export class BucService {
     `
     return { success: true }
   }
+
+  async submitRegistration(data: {
+    buc_code: string
+    full_name?: string
+    phone?: string
+    email?: string
+    line_id?: string
+    source?: string[]
+    skill_level?: string
+    goal?: string[]
+    interested_topics?: string
+    consent_promo?: boolean
+  }): Promise<any> {
+    const { buc_code, full_name, phone, email, ...fields } = data
+
+    const rows = await this.prisma.$queryRaw`
+      SELECT id, status FROM buc_codes WHERE buc_code = ${buc_code} LIMIT 1
+    ` as any[]
+
+    if (rows.length === 0) {
+      return { success: false, error: 'ไม่พบรหัสนี้ในระบบ' }
+    }
+    if (rows[0].status === 'registered') {
+      return { success: false, error: 'รหัสนี้ถูกใช้งานแล้ว' }
+    }
+
+    const notes = JSON.stringify({
+      line_id: fields.line_id ?? null,
+      source: fields.source ?? [],
+      skill_level: fields.skill_level ?? null,
+      goal: fields.goal ?? [],
+      interested_topics: fields.interested_topics ?? null,
+      consent_promo: fields.consent_promo ?? false,
+    })
+
+    await this.prisma.$queryRaw`
+      UPDATE buc_codes SET
+        customer_name = COALESCE(${full_name ?? null}, customer_name),
+        customer_phone = COALESCE(${phone ?? null}, customer_phone),
+        customer_email = COALESCE(${email ?? null}, customer_email),
+        status = 'registered',
+        notes = ${notes},
+        registered_at = COALESCE(registered_at, NOW()),
+        updated_at = NOW()
+      WHERE buc_code = ${buc_code}
+    `
+
+    return { success: true, buc_code }
+  }
 }
