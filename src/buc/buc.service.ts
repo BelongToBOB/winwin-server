@@ -125,9 +125,38 @@ export class BucService {
     customer_phone: string
     customer_email?: string
   }): Promise<any> {
-    const easySlipKey = process.env.EASYSLIP_API_KEY
+    const isMock = process.env.EASYSLIP_MOCK === 'true'
     const minAmount = Number(process.env.MIN_PAYMENT_AMOUNT || 4990)
 
+    if (isMock) {
+      const nextNum = await this.getNextBucNumber()
+      const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
+      const mockTransRef = `MOCK_${Date.now()}`
+      await this.prisma.$queryRaw`
+        INSERT INTO buc_codes (
+          buc_code, buc_number, customer_name, customer_phone,
+          customer_email, status, payment_ref, payment_amount,
+          issued_at, updated_at
+        ) VALUES (
+          ${bucCode}, ${nextNum},
+          ${data.customer_name}, ${data.customer_phone},
+          ${data.customer_email ?? null},
+          'pending',
+          ${mockTransRef},
+          ${minAmount},
+          NOW(), NOW()
+        )
+      `
+      return {
+        success: true,
+        buc_code: bucCode,
+        form_url: `https://buc.winwinwealth.co?buc=${bucCode}`,
+        amount: minAmount,
+        mock: true,
+      }
+    }
+
+    const easySlipKey = process.env.EASYSLIP_API_KEY
     const apiUrl = 'https://api.easyslip.com/v2/verify/bank/base64'
 
     try {
