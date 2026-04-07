@@ -191,7 +191,7 @@ export class BucService {
         amount,
       }
     } catch (err: any) {
-      if (err?.response?.status === 400) {
+      if (err?.response?.status === 400 || err?.response?.status === 404) {
         return {
           success: false,
           error: 'ไม่สามารถอ่านสลิปได้ กรุณาตรวจสอบรูปภาพและลองใหม่',
