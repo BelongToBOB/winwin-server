@@ -71,8 +71,7 @@ export class CourseEventsService {
         delivery_mode = COALESCE(${delivery_mode ?? null}, delivery_mode),
         max_seats = COALESCE(${max_seats ?? null}, max_seats),
         price = COALESCE(${price ?? null}, price),
-        status = COALESCE(${status ?? null}, status),
-        updated_at = NOW()
+        status = COALESCE(${status ?? null}, status)
       WHERE id = ${id}::uuid
       RETURNING *
     `
