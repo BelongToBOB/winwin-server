@@ -68,7 +68,7 @@ export class OverviewService {
         COUNT(r.id) FILTER (WHERE r.reg_status = 'attended')::int AS attended,
         ce.status
       FROM course_events ce
-      LEFT JOIN registrations r ON r.event_id = ce.id
+      LEFT JOIN registrations r ON r.seminar_id = ce.seminar_id
       WHERE (${sid}::text IS NULL OR ce.seminar_id = ${sid})
       GROUP BY ce.seminar_id, ce.course_name, ce.event_date, ce.status
       ORDER BY ce.event_date DESC
