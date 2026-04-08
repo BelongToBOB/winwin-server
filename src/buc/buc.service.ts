@@ -12,8 +12,7 @@ export class BucService {
 
   async getNextBucNumber(): Promise<number> {
     const rows = await this.prisma.$queryRaw`
-      SELECT COALESCE(MAX(buc_number), 0) + 1 as next_number
-      FROM buc_codes
+      SELECT nextval('buc_number_seq')::int as next_number
     ` as any[]
     return Number(rows[0].next_number)
   }
