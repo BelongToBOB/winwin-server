@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { CloudinaryService } from '../cloudinary/cloudinary.service'
 import axios from 'axios'
 
 @Injectable()
 export class BucService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   async getNextBucNumber(): Promise<number> {
     const rows = await this.prisma.$queryRaw`
@@ -131,12 +135,13 @@ export class BucService {
     if (isMock) {
       const nextNum = await this.getNextBucNumber()
       const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
+      const slipUrl = 'mock://slip'
       const mockTransRef = `MOCK_${Date.now()}`
       await this.prisma.$queryRaw`
         INSERT INTO buc_codes (
           buc_code, buc_number, customer_name, customer_phone,
           customer_email, status, payment_ref, payment_amount,
-          issued_at, updated_at
+          slip_url, issued_at, updated_at
         ) VALUES (
           ${bucCode}, ${nextNum},
           ${data.customer_name}, ${data.customer_phone},
@@ -144,6 +149,7 @@ export class BucService {
           'pending',
           ${mockTransRef},
           ${minAmount},
+          ${slipUrl},
           NOW(), NOW()
         )
       `
@@ -160,6 +166,10 @@ export class BucService {
     const apiUrl = 'https://api.easyslip.com/v2/verify/bank/base64'
 
     try {
+      const nextNum = await this.getNextBucNumber()
+      const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
+      const slipUrl = await this.cloudinaryService.uploadSlip(data.slip_image, bucCode)
+
       const response = await axios.post(
         apiUrl,
         { base64: data.slip_image },
@@ -198,14 +208,11 @@ export class BucService {
         }
       }
 
-      const nextNum = await this.getNextBucNumber()
-      const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
-
       await this.prisma.$queryRaw`
         INSERT INTO buc_codes (
           buc_code, buc_number, customer_name, customer_phone,
           customer_email, status, payment_ref, payment_amount,
-          issued_at, updated_at
+          slip_url, issued_at, updated_at
         ) VALUES (
           ${bucCode}, ${nextNum},
           ${data.customer_name}, ${data.customer_phone},
@@ -213,6 +220,7 @@ export class BucService {
           'pending',
           ${transRef || null},
           ${amount},
+          ${slipUrl},
           NOW(), NOW()
         )
       `
@@ -289,6 +297,15 @@ export class BucService {
     goal?: string[]
     interested_topics?: string
     consent_promo?: boolean
+    needs_receipt?: boolean
+    receipt_name?: string
+    receipt_address?: string
+    receipt_tax_id?: string
+    receipt_type?: string
+    receipt_email?: string
+    needs_withholding?: boolean
+    withholding_contact?: string
+    withholding_acknowledged?: boolean
   }): Promise<any> {
     const { buc_code, full_name, phone, email, ...fields } = data
 
@@ -304,7 +321,6 @@ export class BucService {
     }
 
     const notes = JSON.stringify({
-      line_id: fields.line_id ?? null,
       source: fields.source ?? [],
       skill_level: fields.skill_level ?? null,
       goal: fields.goal ?? [],
@@ -317,8 +333,18 @@ export class BucService {
         customer_name = COALESCE(${full_name ?? null}, customer_name),
         customer_phone = COALESCE(${phone ?? null}, customer_phone),
         customer_email = COALESCE(${email ?? null}, customer_email),
+        line_id = ${fields.line_id ?? null},
         status = 'registered',
         notes = ${notes},
+        needs_receipt = ${fields.needs_receipt ?? false},
+        receipt_name = ${fields.receipt_name ?? null},
+        receipt_address = ${fields.receipt_address ?? null},
+        receipt_tax_id = ${fields.receipt_tax_id ?? null},
+        receipt_type = ${fields.receipt_type ?? null},
+        receipt_email = ${fields.receipt_email ?? null},
+        needs_withholding = ${fields.needs_withholding ?? false},
+        withholding_contact = ${fields.withholding_contact ?? null},
+        withholding_acknowledged = ${fields.withholding_acknowledged ?? false},
         registered_at = COALESCE(registered_at, NOW()),
         updated_at = NOW()
       WHERE buc_code = ${buc_code}

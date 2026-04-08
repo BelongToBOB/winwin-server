@@ -11,6 +11,7 @@ import { RegistrantsModule } from './registrants/registrants.module'
 import { RegistrationProfilesModule } from './registration-profiles/registration-profiles.module'
 import { InteractionsModule } from './interactions/interactions.module'
 import { BucModule } from './buc/buc.module'
+import { CloudinaryModule } from './cloudinary/cloudinary.module'
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { BucModule } from './buc/buc.module'
     RegistrationProfilesModule,
     InteractionsModule,
     BucModule,
+    CloudinaryModule,
   ],
 })
 export class AppModule {}
