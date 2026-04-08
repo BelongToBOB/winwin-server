@@ -135,7 +135,6 @@ export class BucService {
     if (isMock) {
       const nextNum = await this.getNextBucNumber()
       const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
-      const slipUrl = 'mock://slip'
       const mockTransRef = `MOCK_${Date.now()}`
       await this.prisma.$queryRaw`
         INSERT INTO buc_codes (
@@ -149,14 +148,14 @@ export class BucService {
           'pending',
           ${mockTransRef},
           ${minAmount},
-          ${slipUrl},
+          ${'mock://no-slip'},
           NOW(), NOW()
         )
       `
       return {
         success: true,
         buc_code: bucCode,
-        form_url: `https://buc.winwinwealth.co?buc=${bucCode}`,
+        form_url: `https://bucform.winwinwealth.co?buc=${bucCode}`,
         amount: minAmount,
         mock: true,
       }
@@ -165,10 +164,17 @@ export class BucService {
     const easySlipKey = process.env.EASYSLIP_API_KEY
     const apiUrl = 'https://api.easyslip.com/v2/verify/bank/base64'
 
+    // Upload slip to Cloudinary (non-blocking — don't fail verification if upload fails)
+    let slipUrl: string | null = null
+    try {
+      slipUrl = await this.cloudinaryService.uploadSlip(data.slip_image, `temp_${Date.now()}`)
+    } catch (uploadErr) {
+      console.error('[Cloudinary] Upload failed:', uploadErr)
+    }
+
     try {
       const nextNum = await this.getNextBucNumber()
       const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
-      const slipUrl = await this.cloudinaryService.uploadSlip(data.slip_image, bucCode)
 
       const response = await axios.post(
         apiUrl,
@@ -228,7 +234,7 @@ export class BucService {
       return {
         success: true,
         buc_code: bucCode,
-        form_url: `https://buc.winwinwealth.co?buc=${bucCode}`,
+        form_url: `https://bucform.winwinwealth.co?buc=${bucCode}`,
         amount,
       }
     } catch (err: any) {
