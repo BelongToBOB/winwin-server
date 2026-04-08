@@ -188,7 +188,6 @@ export class BucService {
         {
           base64: base64WithPrefix,
           checkDuplicate: true,
-          matchAmount: minAmount,
         },
         {
           headers: {
