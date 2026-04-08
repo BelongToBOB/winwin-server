@@ -164,13 +164,20 @@ export class BucService {
     const easySlipKey = process.env.EASYSLIP_API_KEY
     const apiUrl = 'https://api.easyslip.com/v2/verify/bank/base64'
 
-    // Upload slip to Cloudinary (non-blocking — don't fail verification if upload fails)
+    // 1. Upload slip to Cloudinary first (non-blocking)
     let slipUrl: string | null = null
     try {
-      slipUrl = await this.cloudinaryService.uploadSlip(data.slip_image, `temp_${Date.now()}`)
-    } catch (uploadErr) {
-      console.error('[Cloudinary] Upload failed:', uploadErr)
+      const tempId = `pending_${Date.now()}`
+      slipUrl = await this.cloudinaryService.uploadSlip(data.slip_image, tempId)
+      console.log(`[Cloudinary] Uploaded slip: ${slipUrl}`)
+    } catch (uploadErr: any) {
+      console.error('[Cloudinary] Upload failed:', uploadErr?.message)
     }
+
+    // 2. Call EasySlip API
+    const base64WithPrefix = data.slip_image.startsWith('data:')
+      ? data.slip_image
+      : `data:image/jpeg;base64,${data.slip_image}`
 
     try {
       const nextNum = await this.getNextBucNumber()
@@ -178,7 +185,11 @@ export class BucService {
 
       const response = await axios.post(
         apiUrl,
-        { base64: data.slip_image },
+        {
+          base64: base64WithPrefix,
+          checkDuplicate: true,
+          matchAmount: minAmount,
+        },
         {
           headers: {
             Authorization: `Bearer ${easySlipKey}`,
@@ -198,6 +209,11 @@ export class BucService {
       const senderName = rawSlip?.sender?.account?.name?.th
       console.log(`[EasySlip] transRef=${transRef} amount=${amount} from=${senderName}(${senderBank}) to=${receiverBank}`)
 
+      // Check EasySlip built-in duplicate flag
+      if (slip?.data?.isDuplicate) {
+        return { success: false, error: 'สลิปนี้ถูกใช้งานแล้ว' }
+      }
+
       if (amount < minAmount) {
         return {
           success: false,
@@ -205,6 +221,7 @@ export class BucService {
         }
       }
 
+      // DB duplicate check as backup
       if (transRef) {
         const existing = await this.prisma.$queryRaw`
           SELECT id FROM buc_codes WHERE payment_ref = ${transRef} LIMIT 1
