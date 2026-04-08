@@ -179,6 +179,11 @@ export class BucService {
       ? data.slip_image
       : `data:image/jpeg;base64,${data.slip_image}`
 
+    console.log(`[EasySlip] Calling: ${apiUrl}`)
+    console.log(`[EasySlip] base64 length: ${base64WithPrefix.length}`)
+    console.log(`[EasySlip] Request keys: ${JSON.stringify(Object.keys({ base64: true, checkDuplicate: true }))}`)
+    console.log(`[EasySlip] API key present: ${!!easySlipKey}, length: ${easySlipKey?.length ?? 0}`)
+
     try {
       const nextNum = await this.getNextBucNumber()
       const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
@@ -196,6 +201,9 @@ export class BucService {
           },
         }
       )
+
+      console.log(`[EasySlip] Response status: ${response.status}`)
+      console.log(`[EasySlip] Response data: ${JSON.stringify(response.data)}`)
 
       const slip = response.data
       const rawSlip = slip?.data?.rawSlip
@@ -254,6 +262,9 @@ export class BucService {
         amount,
       }
     } catch (err: any) {
+      console.error(`[EasySlip] Error status: ${err?.response?.status}`)
+      console.error(`[EasySlip] Error response data: ${JSON.stringify(err?.response?.data)}`)
+      console.error(`[EasySlip] Error config headers: ${JSON.stringify(err?.config?.headers)}`)
       if (err?.response?.status === 400 || err?.response?.status === 404) {
         return { success: false, error: 'ไม่สามารถอ่านสลิปได้ กรุณาตรวจสอบรูปภาพและลองใหม่' }
       }
