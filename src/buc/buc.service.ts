@@ -162,7 +162,7 @@ export class BucService {
     }
 
     const easySlipKey = process.env.EASYSLIP_API_KEY
-    const apiUrl = 'https://api.easyslip.com/v2/verify/bank/base64'
+    const apiUrl = 'https://api.easyslip.com/v2/verify/bank'
 
     // 1. Upload slip to Cloudinary first (non-blocking)
     let slipUrl: string | null = null
