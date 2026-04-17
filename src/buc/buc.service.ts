@@ -40,19 +40,27 @@ export class BucService {
     payment_ref?: string
     payment_amount?: number
   }): Promise<any> {
-    const nextNum = await this.getNextBucNumber()
-    const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
+    // Sanitize inputs before touching sequence
+    const customerName = data.customer_name ?? null
+    const customerPhone = data.customer_phone ?? null
+    const customerEmail = data.customer_email ?? null
+    const packageName = data.package_name ?? 'Bank Uncensored Online'
+    const notes = data.notes ?? null
+    const paymentRef = data.payment_ref || null
+    const paymentAmount = data.payment_amount ? Number(data.payment_amount) : null
+
     const rows = await this.prisma.$queryRaw`
+      WITH next AS (
+        SELECT nextval('buc_number_seq')::int AS num
+      )
       INSERT INTO buc_codes (
         buc_code, buc_number, customer_name, customer_phone,
         customer_email, package_name, notes, payment_ref, payment_amount
-      ) VALUES (
-        ${bucCode}, ${nextNum}, ${data.customer_name ?? null},
-        ${data.customer_phone ?? null}, ${data.customer_email ?? null},
-        ${data.package_name ?? 'Bank Uncensored Online'},
-        ${data.notes ?? null}, ${data.payment_ref || null},
-        ${data.payment_amount ? Number(data.payment_amount) : null}
-      )
+      ) SELECT
+        'BUC' || LPAD(num::text, 4, '0'), num,
+        ${customerName}, ${customerPhone}, ${customerEmail},
+        ${packageName}, ${notes}, ${paymentRef}, ${paymentAmount}
+      FROM next
       RETURNING *
     ` as any[]
     return rows[0]
