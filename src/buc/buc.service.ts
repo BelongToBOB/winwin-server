@@ -64,8 +64,28 @@ export class BucService {
     customer_email?: string
     status?: string
     notes?: string
+    payment_amount?: number
+    payment_ref?: string
+    slip_image?: string
   }): Promise<any> {
-    const { customer_name, customer_phone, customer_email, status, notes } = data
+    const { customer_name, customer_phone, customer_email, status, notes, payment_amount, payment_ref, slip_image } = data
+
+    // Upload slip to Cloudinary if provided
+    let slipUrl: string | null = null
+    if (slip_image) {
+      const existing = await this.prisma.$queryRaw`
+        SELECT buc_code FROM buc_codes WHERE id = ${id}::uuid LIMIT 1
+      ` as any[]
+      if (existing.length > 0) {
+        try {
+          slipUrl = await this.cloudinaryService.uploadSlip(slip_image, existing[0].buc_code)
+          console.log(`[Update] Uploaded slip for ${existing[0].buc_code}: ${slipUrl}`)
+        } catch (err: any) {
+          console.error('[Update] Slip upload failed:', err?.message)
+        }
+      }
+    }
+
     const rows = await this.prisma.$queryRaw`
       UPDATE buc_codes SET
         customer_name = COALESCE(${customer_name ?? null}, customer_name),
@@ -73,6 +93,9 @@ export class BucService {
         customer_email = COALESCE(${customer_email ?? null}, customer_email),
         status = COALESCE(${status ?? null}, status),
         notes = COALESCE(${notes ?? null}, notes),
+        payment_amount = COALESCE(${payment_amount ?? null}, payment_amount),
+        payment_ref = COALESCE(${payment_ref ?? null}, payment_ref),
+        slip_url = COALESCE(${slipUrl}, slip_url),
         registered_at = CASE
           WHEN ${status ?? null} = 'registered' AND registered_at IS NULL
           THEN NOW()
