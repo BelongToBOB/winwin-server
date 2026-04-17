@@ -50,8 +50,8 @@ export class BucService {
         ${bucCode}, ${nextNum}, ${data.customer_name ?? null},
         ${data.customer_phone ?? null}, ${data.customer_email ?? null},
         ${data.package_name ?? 'Bank Uncensored Online'},
-        ${data.notes ?? null}, ${data.payment_ref ?? null},
-        ${data.payment_amount ?? null}
+        ${data.notes ?? null}, ${data.payment_ref || null},
+        ${data.payment_amount ? Number(data.payment_amount) : null}
       )
       RETURNING *
     ` as any[]
