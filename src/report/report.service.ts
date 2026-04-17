@@ -50,6 +50,7 @@ export class ReportService {
             COALESCE(customer_name, '') AS customer_name,
             COALESCE(customer_phone, '') AS customer_phone,
             COALESCE(customer_email, '') AS customer_email,
+            COALESCE(line_id, '') AS line_id,
             COALESCE(payment_amount::text, '') AS payment_amount,
             COALESCE(status, '') AS status,
             COALESCE(issued_at::date::text, '') AS issued_at
