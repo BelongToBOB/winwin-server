@@ -43,6 +43,20 @@ export class ReportService {
           ORDER BY re.first_name, re.last_name
         `
 
+      case 'buc_summary':
+        return this.prisma.$queryRaw<any[]>`
+          SELECT
+            buc_code,
+            COALESCE(customer_name, '') AS customer_name,
+            COALESCE(customer_phone, '') AS customer_phone,
+            COALESCE(customer_email, '') AS customer_email,
+            COALESCE(payment_amount::text, '') AS payment_amount,
+            COALESCE(status, '') AS status,
+            COALESCE(issued_at::date::text, '') AS issued_at
+          FROM buc_codes
+          ORDER BY buc_number ASC
+        `
+
       default:
         return []
     }

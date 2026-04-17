@@ -5,11 +5,13 @@ import { ReportService } from './report.service'
 const CSV_HEADERS: Record<string, string[]> = {
   registration_summary: ['ชื่อ', 'นามสกุล', 'ชื่อเล่น', 'อีเมล', 'เบอร์โทร', 'อาชีพ', 'ช่องทาง', 'วงเงินกู้', 'สถานะ', 'วันที่ลงทะเบียน'],
   attendance_sheet:     ['ลำดับ', 'ชื่อ', 'นามสกุล', 'ชื่อเล่น', 'เบอร์โทร', 'ลายเซ็น'],
+  buc_summary:          ['ลำดับ', 'รหัส BUC', 'ชื่อลูกค้า', 'เบอร์โทร', 'อีเมล', 'ยอดเงิน', 'สถานะ', 'วันที่ออก'],
 }
 
 const CSV_KEYS: Record<string, string[]> = {
   registration_summary: ['first_name', 'last_name', 'nickname', 'email', 'phone', 'job_category', 'channels', 'loan_amount_range', 'reg_status', 'registered_at'],
   attendance_sheet:     ['_index', 'first_name', 'last_name', 'nickname', 'phone', 'signature'],
+  buc_summary:          ['_index', 'buc_code', 'customer_name', 'customer_phone', 'customer_email', 'payment_amount', 'status', 'issued_at'],
 }
 
 function escapeCell(val: string, key: string): string {
