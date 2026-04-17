@@ -192,6 +192,7 @@ export class BucService {
         {
           base64: base64WithPrefix,
           checkDuplicate: true,
+          matchAccount: true,
         },
         {
           headers: {
@@ -215,6 +216,36 @@ export class BucService {
       const senderName = rawSlip?.sender?.account?.name?.th
       console.log(`[EasySlip] transRef=${transRef} amount=${amount} from=${senderName}(${senderBank}) to=${receiverBank}`)
 
+      // Check receiver account — use EasySlip matchedAccount if available, fallback to manual check
+      const matchedAccount = slip?.data?.matchedAccount
+      const receiverName = rawSlip?.receiver?.account?.name?.th || rawSlip?.receiver?.account?.name?.en || ''
+      const expectedName = process.env.EASYSLIP_RECEIVER_BANK || ''
+
+      console.log(`[EasySlip] matchedAccount=${JSON.stringify(matchedAccount)} receiverName=${receiverName}`)
+
+      if (matchedAccount) {
+        // EasySlip matched against portal-registered accounts — trust this result
+        console.log(`[EasySlip] Account matched via portal: ${matchedAccount.nameTh || matchedAccount.nameEn}`)
+      } else {
+        // No portal match — do manual name check
+        // Normalize: remove prefixes like บจก., นาย, นาง etc. and compare core name
+        const normalize = (s: string) => s.replace(/^(บจก\.|บมจ\.|หจก\.|นาย|นาง|นางสาว|mr\.|mrs\.|ms\.)\s*/gi, '').trim().toLowerCase()
+        const normalizedReceiver = normalize(receiverName)
+        const normalizedExpected = normalize(expectedName)
+
+        // Check if the core part of expected name appears in receiver name
+        const expectedWords = normalizedExpected.split(/\s+/).filter(w => w.length > 2)
+        const hasNameMatch = expectedWords.length > 0 && expectedWords.every(word => normalizedReceiver.includes(word))
+
+        if (!hasNameMatch) {
+          console.log(`[EasySlip] Receiver mismatch: receiverName="${receiverName}" expectedName="${expectedName}" normalizedReceiver="${normalizedReceiver}" expectedWords=${JSON.stringify(expectedWords)}`)
+          return {
+            success: false,
+            error: `บัญชีผู้รับไม่ถูกต้อง (${receiverName || 'ไม่ทราบ'}) กรุณาโอนเข้าบัญชีที่กำหนดเท่านั้น`,
+          }
+        }
+      }
+
       // Check EasySlip built-in duplicate flag
       if (slip?.data?.isDuplicate) {
         return { success: false, error: 'สลิปนี้ถูกใช้งานแล้ว' }
@@ -223,7 +254,7 @@ export class BucService {
       if (amount < minAmount) {
         return {
           success: false,
-          error: `ยอดโอนไม่ถูกต้อง (${amount} บาท) ต้องการอย่างน้อย ${minAmount} บาท`,
+          error: 'ยอดโอนไม่ถูกต้อง',
         }
       }
 
@@ -277,6 +308,58 @@ export class BucService {
         return { success: false, error: 'ระบบยุ่งอยู่ กรุณาลองใหม่อีกครั้ง' }
       }
       throw err
+    }
+  }
+
+  async manualVerify(data: {
+    customer_name: string
+    customer_phone: string
+    customer_email?: string
+    payment_amount: number
+    payment_ref?: string
+    slip_image?: string
+    notes?: string
+  }): Promise<any> {
+    // 1. Upload slip to Cloudinary (ถ้ามี)
+    let slipUrl: string | null = null
+    if (data.slip_image) {
+      try {
+        const tempId = `manual_${Date.now()}`
+        slipUrl = await this.cloudinaryService.uploadSlip(data.slip_image, tempId)
+        console.log(`[ManualVerify] Uploaded slip: ${slipUrl}`)
+      } catch (uploadErr: any) {
+        console.error('[ManualVerify] Upload failed:', uploadErr?.message)
+      }
+    }
+
+    // 2. Gen BUC code + INSERT
+    const nextNum = await this.getNextBucNumber()
+    const bucCode = `BUC${String(nextNum).padStart(4, '0')}`
+    const paymentRef = data.payment_ref || `MANUAL_${Date.now()}`
+
+    await this.prisma.$queryRaw`
+      INSERT INTO buc_codes (
+        buc_code, buc_number, customer_name, customer_phone,
+        customer_email, status, payment_ref, payment_amount,
+        slip_url, notes, issued_at, updated_at
+      ) VALUES (
+        ${bucCode}, ${nextNum},
+        ${data.customer_name}, ${data.customer_phone},
+        ${data.customer_email ?? null},
+        'pending',
+        ${paymentRef},
+        ${data.payment_amount},
+        ${slipUrl},
+        ${data.notes ?? 'Manual verify by admin'},
+        NOW(), NOW()
+      )
+    `
+
+    return {
+      success: true,
+      buc_code: bucCode,
+      form_url: `https://bucform.winwinwealth.co?buc=${bucCode}`,
+      amount: data.payment_amount,
     }
   }
 

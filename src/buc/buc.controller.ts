@@ -25,6 +25,11 @@ export class BucController {
     return this.bucService.verifyPayment(body)
   }
 
+  @Post('manual-verify')
+  manualVerify(@Body() body: any) {
+    return this.bucService.manualVerify(body)
+  }
+
   @Post('submit')
   submitRegistration(@Body() body: any) {
     return this.bucService.submitRegistration(body)
