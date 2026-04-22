@@ -98,7 +98,7 @@ export class RegistrationsService {
   }
 
   async updateReschedule(id: string, data: { reschedule_status: string; reschedule_note?: string }) {
-    const allowed = ['none', 'requested', 'confirmed', 'cancelled']
+    const allowed = ['none', 'rescheduled']
     if (!allowed.includes(data.reschedule_status)) {
       throw new BadRequestException(
         `Invalid reschedule_status. Must be one of: ${allowed.join(', ')}`
