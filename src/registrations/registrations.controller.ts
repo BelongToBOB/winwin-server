@@ -36,4 +36,12 @@ export class RegistrationsController {
   remove(@Param('id') id: string) {
     return this.registrationsService.remove(id)
   }
+
+  @Patch(':id/reschedule')
+  updateReschedule(
+    @Param('id') id: string,
+    @Body() body: { reschedule_status: string; reschedule_note?: string },
+  ) {
+    return this.registrationsService.updateReschedule(id, body)
+  }
 }

@@ -455,6 +455,12 @@ export class BucService {
   }): Promise<any> {
     const { buc_code, full_name, phone, email, ...fields } = data
 
+    // Normalize: strip dashes/spaces from tax ID and phone
+    if (fields.receipt_tax_id) {
+      fields.receipt_tax_id = fields.receipt_tax_id.replace(/[-\s]/g, '')
+    }
+    const cleanPhone = phone?.replace(/[-\s]/g, '') || null
+
     const rows = await this.prisma.$queryRaw`
       SELECT id, status FROM buc_codes WHERE buc_code = ${buc_code} LIMIT 1
     ` as any[]
@@ -477,7 +483,7 @@ export class BucService {
     await this.prisma.$queryRaw`
       UPDATE buc_codes SET
         customer_name = COALESCE(${full_name ?? null}, customer_name),
-        customer_phone = COALESCE(${phone ?? null}, customer_phone),
+        customer_phone = COALESCE(${cleanPhone}, customer_phone),
         customer_email = COALESCE(${email ?? null}, customer_email),
         line_id = ${fields.line_id ?? null},
         status = 'registered',

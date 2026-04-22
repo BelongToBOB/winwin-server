@@ -29,7 +29,10 @@ export class RegistrationsService {
         rp.channels, rp.loan_amount_range,
         rp.loan_before, rp.credit_banks,
         rp.objective, rp.loan_problems,
-        r.reg_status, r.registered_at::text, r.seminar_id
+        r.reg_status, r.registered_at::text, r.seminar_id,
+        r.reschedule_status,
+        r.reschedule_note,
+        r.reschedule_updated_at::text
       FROM registrations r
       JOIN registrants re ON re.id = r.registrant_id
       LEFT JOIN registration_profiles rp ON rp.registration_id = r.id
@@ -92,5 +95,23 @@ export class RegistrationsService {
       DELETE FROM registrations WHERE id = ${id}::uuid
     `
     return { deleted: true }
+  }
+
+  async updateReschedule(id: string, data: { reschedule_status: string; reschedule_note?: string }) {
+    const allowed = ['none', 'requested', 'confirmed', 'cancelled']
+    if (!allowed.includes(data.reschedule_status)) {
+      throw new BadRequestException(
+        `Invalid reschedule_status. Must be one of: ${allowed.join(', ')}`
+      )
+    }
+    const { reschedule_status, reschedule_note } = data
+    return this.prisma.$queryRaw`
+      UPDATE registrations SET
+        reschedule_status = ${reschedule_status},
+        reschedule_note = ${reschedule_note ?? null},
+        reschedule_updated_at = NOW()
+      WHERE id = ${id}::uuid
+      RETURNING *
+    `
   }
 }

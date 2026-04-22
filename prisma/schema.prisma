@@ -51,6 +51,9 @@ model Registration {
   formPayload   Json?                @map("form_payload")
   registeredAt  DateTime?            @map("registered_at")
   createdAt     DateTime             @default(now()) @map("created_at")
+  rescheduleStatus    String    @default("none") @map("reschedule_status") @db.VarChar(20)
+  rescheduleNote      String?   @map("reschedule_note")
+  rescheduleUpdatedAt DateTime? @map("reschedule_updated_at")
   event         CourseEvent          @relation(fields: [eventId], references: [id])
   registrant    Registrant           @relation(fields: [registrantId], references: [id])
   profile       RegistrationProfile?
