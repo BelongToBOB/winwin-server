@@ -14,6 +14,10 @@ const CSV_KEYS: Record<string, string[]> = {
   buc_summary:          ['_index', 'buc_code', 'customer_name', 'customer_phone', 'customer_email', 'line_id', 'payment_amount', 'status', 'issued_at'],
 }
 
+function escapeXml(val: string): string {
+  return val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 function escapeCell(val: string, key: string): string {
   if (key === 'phone' && val) {
     // Force Excel/Numbers to treat phone as text, preserving leading zero
@@ -38,12 +42,30 @@ export class ReportController {
   async exportReport(
     @Query('seminar_id') seminarId: string,
     @Query('type') type: string,
-    @Query('format') _format: string,
+    @Query('format') format: string,
     @Res() res: Response,
   ) {
     const rows = await this.reportService.getPreview(seminarId, type)
+    const keys = CSV_KEYS[type] ?? Object.keys(rows[0] ?? {})
+
+    if (format === 'xml') {
+      const xmlRows = rows.map((r, i) => {
+        const fields = keys.map((k) => {
+          const val = k === '_index' ? String(i + 1) : String(r[k] ?? '')
+          return `    <${k}>${escapeXml(val)}</${k}>`
+        }).join('\n')
+        return `  <row>\n${fields}\n  </row>`
+      }).join('\n')
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<report type="${escapeXml(type)}" seminar_id="${escapeXml(seminarId || '')}">\n${xmlRows}\n</report>`
+
+      res.header('Content-Type', 'application/xml; charset=utf-8')
+      res.header('Content-Disposition', `attachment; filename="report-${type}-${seminarId}.xml"`)
+      res.send(xml)
+      return
+    }
+
     const headers = CSV_HEADERS[type] ?? Object.keys(rows[0] ?? {})
-    const keys    = CSV_KEYS[type]    ?? Object.keys(rows[0] ?? {})
 
     res.header('Content-Type', 'text/csv; charset=utf-8-sig')
     res.header('Content-Disposition', `attachment; filename="report-${type}-${seminarId}.csv"`)
