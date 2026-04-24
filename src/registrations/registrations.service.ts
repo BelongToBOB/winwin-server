@@ -52,11 +52,21 @@ export class RegistrationsService {
 
   async create(data: {
     registrant_id: string
-    event_id: string
+    event_id?: string
     seminar_id: string
     reg_status?: string
   }) {
-    const { registrant_id, event_id, seminar_id, reg_status } = data
+    const { registrant_id, seminar_id, reg_status } = data
+    let event_id = data.event_id
+    if (!event_id) {
+      const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT id::text FROM course_events WHERE seminar_id = ${seminar_id} LIMIT 1
+      `
+      if (!rows.length) {
+        throw new BadRequestException(`ไม่พบ seminar_id: ${seminar_id}`)
+      }
+      event_id = rows[0].id
+    }
     try {
       return await this.prisma.$queryRaw`
         INSERT INTO registrations (event_id, registrant_id, seminar_id, reg_status, registered_at)
