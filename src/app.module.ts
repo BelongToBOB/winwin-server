@@ -12,6 +12,7 @@ import { RegistrationProfilesModule } from './registration-profiles/registration
 import { InteractionsModule } from './interactions/interactions.module'
 import { BucModule } from './buc/buc.module'
 import { CloudinaryModule } from './cloudinary/cloudinary.module'
+import { BhcRegistrationsModule } from './bhc-registrations/bhc-registrations.module'
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module'
     InteractionsModule,
     BucModule,
     CloudinaryModule,
+    BhcRegistrationsModule,
   ],
 })
 export class AppModule {}

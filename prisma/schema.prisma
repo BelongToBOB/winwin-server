@@ -134,3 +134,19 @@ model WebhookLog {
 
   @@map("webhook_logs")
 }
+
+model BhcRegistration {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId           String   @default("BHC_2026") @map("event_id") @db.VarChar(50)
+  fullName          String   @map("full_name") @db.VarChar(255)
+  nickname          String   @db.VarChar(100)
+  phone             String   @db.VarChar(20)
+  facebookName      String   @map("facebook_name") @db.VarChar(255)
+  accountingProblem String   @map("accounting_problem")
+  channel           String   @db.VarChar(50)
+  courseAccept       String   @map("course_accept") @db.VarChar(20)
+  copyrightAccept   String   @map("copyright_accept") @db.VarChar(20)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@map("bhc_registrations")
+}
