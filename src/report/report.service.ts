@@ -43,6 +43,25 @@ export class ReportService {
           ORDER BY re.first_name, re.last_name
         `
 
+      case 'loan_profile':
+        return this.prisma.$queryRaw<any[]>`
+          SELECT
+            re.first_name,
+            re.last_name,
+            COALESCE(re.nickname, '') AS nickname,
+            re.phone::text AS phone,
+            COALESCE(rp.loan_amount_range, '') AS loan_amount_range,
+            CASE WHEN rp.loan_before THEN 'เคย' ELSE 'ไม่เคย' END AS loan_before,
+            COALESCE(rp.credit_banks, '') AS credit_banks,
+            COALESCE(rp.objective, '') AS objective,
+            COALESCE(rp.loan_problems, '') AS loan_problems
+          FROM registrations r
+          JOIN registrants re ON re.id = r.registrant_id
+          LEFT JOIN registration_profiles rp ON rp.registration_id = r.id
+          WHERE (${sid}::text IS NULL OR r.seminar_id = ${sid})
+          ORDER BY r.registered_at DESC
+        `
+
       case 'buc_summary':
         return this.prisma.$queryRaw<any[]>`
           SELECT

@@ -5,12 +5,14 @@ import { ReportService } from './report.service'
 const CSV_HEADERS: Record<string, string[]> = {
   registration_summary: ['ชื่อ', 'นามสกุล', 'ชื่อเล่น', 'อีเมล', 'เบอร์โทร', 'อาชีพ', 'ช่องทาง', 'วงเงินกู้', 'สถานะ', 'วันที่ลงทะเบียน'],
   attendance_sheet:     ['ลำดับ', 'ชื่อ', 'นามสกุล', 'ชื่อเล่น', 'เบอร์โทร', 'ลายเซ็น'],
+  loan_profile:         ['ชื่อ', 'นามสกุล', 'ชื่อเล่น', 'เบอร์โทร', 'วงเงินกู้', 'เคยกู้', 'ธนาคาร', 'วัตถุประสงค์', 'ปัญหาการกู้'],
   buc_summary:          ['ลำดับ', 'รหัส BUC', 'ชื่อลูกค้า', 'เบอร์โทร', 'อีเมล', 'LINE ID', 'ยอดเงิน', 'สถานะ', 'วันที่ออก'],
 }
 
 const CSV_KEYS: Record<string, string[]> = {
   registration_summary: ['first_name', 'last_name', 'nickname', 'email', 'phone', 'job_category', 'channels', 'loan_amount_range', 'reg_status', 'registered_at'],
   attendance_sheet:     ['_index', 'first_name', 'last_name', 'nickname', 'phone', 'signature'],
+  loan_profile:         ['first_name', 'last_name', 'nickname', 'phone', 'loan_amount_range', 'loan_before', 'credit_banks', 'objective', 'loan_problems'],
   buc_summary:          ['_index', 'buc_code', 'customer_name', 'customer_phone', 'customer_email', 'line_id', 'payment_amount', 'status', 'issued_at'],
 }
 
