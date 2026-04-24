@@ -50,6 +50,32 @@ export class BhcRegistrationsService {
     `
   }
 
+  async update(id: string, data: Partial<{
+    full_name: string
+    nickname: string
+    phone: string
+    facebook_name: string
+    accounting_problem: string
+    channel: string
+  }>) {
+    const current = await this.prisma.$queryRaw<any[]>`
+      SELECT * FROM bhc_registrations WHERE id = ${id}::uuid
+    `
+    if (!current.length) return []
+    const c = current[0]
+    return this.prisma.$queryRaw`
+      UPDATE bhc_registrations SET
+        full_name = ${data.full_name ?? c.full_name},
+        nickname = ${data.nickname ?? c.nickname},
+        phone = ${data.phone ?? c.phone},
+        facebook_name = ${data.facebook_name ?? c.facebook_name},
+        accounting_problem = ${data.accounting_problem ?? c.accounting_problem},
+        channel = ${data.channel ?? c.channel}
+      WHERE id = ${id}::uuid
+      RETURNING *
+    `
+  }
+
   async remove(id: string) {
     await this.prisma.$queryRaw`
       DELETE FROM bhc_registrations WHERE id = ${id}::uuid

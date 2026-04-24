@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Query, Body } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body } from '@nestjs/common'
 import { BhcRegistrationsService } from './bhc-registrations.service'
 
 @Controller('bhc')
@@ -18,6 +18,11 @@ export class BhcRegistrationsController {
   @Post()
   create(@Body() body: any) {
     return this.service.create(body)
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() body: any) {
+    return this.service.update(id, body)
   }
 
   @Delete(':id')
