@@ -13,6 +13,7 @@ import { InteractionsModule } from './interactions/interactions.module'
 import { BucModule } from './buc/buc.module'
 import { CloudinaryModule } from './cloudinary/cloudinary.module'
 import { BhcRegistrationsModule } from './bhc-registrations/bhc-registrations.module'
+import { PrivateConsultModule } from './private-consult/private-consult.module'
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { BhcRegistrationsModule } from './bhc-registrations/bhc-registrations.mo
     BucModule,
     CloudinaryModule,
     BhcRegistrationsModule,
+    PrivateConsultModule,
   ],
 })
 export class AppModule {}
