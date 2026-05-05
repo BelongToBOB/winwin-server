@@ -10,6 +10,11 @@ export class BucController {
     return this.bucService.getStats()
   }
 
+  @Get('vip/inside-bank')
+  getVipInsideBank() {
+    return this.bucService.getVipInsideBank()
+  }
+
   @Get('validate/:bucCode')
   validateBucCode(@Param('bucCode') bucCode: string) {
     return this.bucService.validateBucCode(bucCode)

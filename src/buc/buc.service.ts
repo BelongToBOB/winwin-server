@@ -325,20 +325,41 @@ export class BucService {
     } catch (err: any) {
       console.error(`[EasySlip] Error status: ${err?.response?.status}`)
       console.error(`[EasySlip] Error response data: ${JSON.stringify(err?.response?.data)}`)
-      console.error(`[EasySlip] Error config headers: ${JSON.stringify(err?.config?.headers)}`)
-      if (err?.response?.status === 400 || err?.response?.status === 404) {
-        return { success: false, error: 'ไม่สามารถอ่านสลิปได้ กรุณาตรวจสอบรูปภาพและลองใหม่' }
+      console.error(`[EasySlip] Fallback: creating BUC code with pending_manual`)
+
+      // EasySlip failed — create BUC code anyway, flag for manual review
+      const fallbackNum = await this.getNextBucNumber()
+      const fallbackBuc = `BUC${String(fallbackNum).padStart(4, '0')}`
+      const fallbackRef = `PENDING_${Date.now()}`
+
+      await this.prisma.$queryRaw`
+        INSERT INTO buc_codes (
+          buc_code, buc_number, customer_name, customer_phone,
+          customer_email, status, payment_ref, payment_amount,
+          slip_url, slip_verified, manual_review, notes,
+          issued_at, updated_at
+        ) VALUES (
+          ${fallbackBuc}, ${fallbackNum},
+          ${data.customer_name}, ${data.customer_phone},
+          ${data.customer_email ?? null},
+          'pending',
+          ${fallbackRef},
+          ${0},
+          ${slipUrl},
+          ${false},
+          ${true},
+          ${'EasySlip verification failed — pending manual review'},
+          NOW(), NOW()
+        )
+      `
+
+      return {
+        success: true,
+        buc_code: fallbackBuc,
+        form_url: `https://bucform.winwinwealth.co?buc=${fallbackBuc}`,
+        amount: 0,
+        pending_manual: true,
       }
-      if (err?.response?.status === 401) {
-        return { success: false, error: 'เกิดข้อผิดพลาดในระบบ (401)' }
-      }
-      if (err?.response?.status === 422) {
-        return { success: false, error: 'สลิปไม่ถูกต้องหรือหมดอายุ' }
-      }
-      if (err?.response?.status === 429) {
-        return { success: false, error: 'ระบบยุ่งอยู่ กรุณาลองใหม่อีกครั้ง' }
-      }
-      throw err
     }
   }
 
@@ -503,5 +524,49 @@ export class BucService {
     `
 
     return { success: true, buc_code }
+  }
+
+  async getVipInsideBank(): Promise<any> {
+    // 1. Get IB_APR_2026 registrants
+    const registrants = await this.prisma.$queryRaw<any[]>`
+      SELECT re.first_name, re.last_name, re.email, re.phone
+      FROM registrations r
+      JOIN registrants re ON re.id = r.registrant_id
+      WHERE r.seminar_id = 'IB_APR_2026'
+      ORDER BY re.first_name
+    `
+
+    // 2. Get granted VIP codes from lms-backend
+    let grantedEmails: string[] = []
+    let vipDetails: any[] = []
+    try {
+      const res = await axios.get('http://lms_backend:3001/api/admin/vip-codes')
+      grantedEmails = res.data.grantedEmails || []
+      vipDetails = res.data.details || []
+    } catch (err: any) {
+      console.error('[VIP] Failed to fetch vip-codes from lms-backend:', err?.message)
+    }
+
+    // 3. Merge
+    const list = registrants.map((r: any) => {
+      const email = (r.email || '').toLowerCase().trim()
+      if (!email) {
+        return { ...r, vip_status: 'no_email', vip_code: null }
+      }
+      const vip = vipDetails.find((v: any) => (v.email || '').toLowerCase().trim() === email)
+      if (vip) {
+        return { ...r, vip_status: 'granted', vip_code: vip.customerCode }
+      }
+      return { ...r, vip_status: 'pending', vip_code: null }
+    })
+
+    return {
+      seminar_id: 'IB_APR_2026',
+      total: list.length,
+      granted: list.filter((r: any) => r.vip_status === 'granted').length,
+      pending: list.filter((r: any) => r.vip_status === 'pending').length,
+      no_email: list.filter((r: any) => r.vip_status === 'no_email').length,
+      registrants: list,
+    }
   }
 }
