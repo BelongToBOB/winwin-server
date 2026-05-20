@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 
-const FC_WEBHOOK = 'https://community.winwinwealth.co/community/?fcom_action=incoming_webhook&webhook=75573f5c28d8c7fee1ed7549e942b1b6'
+const FC_WEBHOOK = 'https://community.winwinwealth.co/community/?fcom_action=incoming_webhook&webhook=dc6da994103c6bc4ac7ea76cf8ca4609'
+const FC_SET_PASSWORD = 'https://community.winwinwealth.co/bhc-set-password.php'
+const FC_PW_SECRET = 'bhc_pw_reset_7x9k2m'
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
-const FROM_EMAIL = 'noreply@winwinwealth.co'
+const FROM_EMAIL = 'WinWin Wealth Creation <noreply@winwinwealth.co>'
 
 @Injectable()
 export class BhcRegistrationsService {
@@ -29,18 +31,30 @@ export class BhcRegistrationsService {
   private async enrollFluentCommunity(data: {
     email: string
     full_name: string
+    bhc_code: string
   }): Promise<void> {
     const [first_name, ...rest] = data.full_name.trim().split(' ')
     const last_name = rest.join(' ')
     const user_login = data.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '')
 
     try {
+      // Enroll user (creates WP user if new, enrolls in course/space)
+      const params = new URLSearchParams({ email: data.email, first_name, last_name, user_login, user_password: data.bhc_code })
       const res = await fetch(FC_WEBHOOK, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email, first_name, last_name, user_login }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
       })
       this.logger.log(`FC enroll ${data.email}: ${res.status}`)
+
+      // Always set password to BHC code (handles existing users)
+      const pwParams = new URLSearchParams({ secret: FC_PW_SECRET, email: data.email, password: data.bhc_code })
+      const pwRes = await fetch(FC_SET_PASSWORD, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: pwParams.toString(),
+      })
+      this.logger.log(`Set password ${data.email}: ${pwRes.status}`)
     } catch (err) {
       this.logger.error(`FC enroll failed for ${data.email}:`, err)
     }
@@ -53,27 +67,73 @@ export class BhcRegistrationsService {
     bhc_code: string
   }): Promise<void> {
     const firstName = data.full_name.trim().split(' ')[0]
-    const html = `
-      <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:24px">
-        <h2 style="color:#1e3a5f">ยินดีต้อนรับสู่ Business Health Check! 🎉</h2>
-        <p>สวัสดีคุณ${firstName},</p>
-        <p>คุณได้ลงทะเบียนเรียน <strong>Business Health Check</strong> เรียบร้อยแล้ว</p>
+    const loginUrl = 'https://community.winwinwealth.co/community/?fcom_action=auth'
+    const lineUrl = 'https://lin.ee/winwinwealth'
 
-        <div style="background:#1e3a5f;color:white;border-radius:12px;padding:20px;text-align:center;margin:24px 0">
-          <div style="font-size:12px;opacity:0.8;margin-bottom:6px">รหัสเข้าเรียนของคุณ</div>
-          <div style="font-size:32px;font-weight:700;letter-spacing:4px">${data.bhc_code}</div>
-          <div style="font-size:11px;opacity:0.7;margin-top:6px">เก็บรหัสนี้ไว้ใช้เข้าระบบเรียนออนไลน์</div>
+    const html = `
+      <div style="font-family:'Helvetica Neue',sans-serif;max-width:560px;margin:auto;padding:24px;color:#1a1a1a">
+        <div style="text-align:center;margin-bottom:24px">
+          <h2 style="color:#1e3a5f;margin:0 0 8px">ยินดีต้อนรับสู่ Business Health Check!</h2>
+          <p style="color:#64748b;font-size:14px;margin:0">ตรวจสุขภาพธุรกิจ ด้านบัญชีและการเงิน</p>
         </div>
 
-        <h3>ขั้นตอนต่อไป</h3>
-        <ol style="line-height:2;color:#334155">
-          <li>เข้าเรียนออนไลน์ที่ <a href="https://community.winwinwealth.co">community.winwinwealth.co</a></li>
-          <li>ใช้รหัส <strong>${data.bhc_code}</strong> เมื่อระบบถาม</li>
-          <li>เข้ากลุ่ม Facebook ตามที่ทีมงานแจ้ง</li>
-        </ol>
+        <p style="font-size:15px">สวัสดีคุณ${firstName} 🎉</p>
+        <p style="font-size:15px">คุณได้ลงทะเบียนเรียน <strong>Business Health Check</strong> เรียบร้อยแล้ว<br/>ข้อมูลสำหรับเข้าสู่ระบบของคุณอยู่ด้านล่างนี้</p>
 
-        <p style="color:#64748b;font-size:13px">หากมีคำถาม ติดต่อทีมงานที่ LINE @winwinwealth</p>
-        <p style="color:#64748b;font-size:13px">ทีมงาน WinWin Wealth Creation</p>
+        <div style="background:linear-gradient(135deg,#1e3a5f 0%,#2d5a9e 100%);color:white;border-radius:12px;padding:24px;margin:24px 0">
+          <table style="width:100%;border-collapse:collapse">
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.15)">
+                <div style="font-size:11px;opacity:0.7;margin-bottom:4px">Email Address (ใช้เข้าสู่ระบบ)</div>
+                <div style="font-size:16px;font-weight:600">${data.email}</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0">
+                <div style="font-size:11px;opacity:0.7;margin-bottom:4px">Password (รหัสผ่าน)</div>
+                <div style="font-size:28px;font-weight:700;letter-spacing:3px">${data.bhc_code}</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:20px;margin:24px 0">
+          <h3 style="color:#0369a1;margin:0 0 16px;font-size:15px">📌 วิธีเข้าเรียน</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <tr>
+              <td style="vertical-align:top;padding:8px 12px 8px 0;width:32px">
+                <div style="background:#0369a1;color:white;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:14px">1</div>
+              </td>
+              <td style="padding:8px 0;font-size:14px;color:#334155">
+                กดปุ่ม <strong>"เข้าสู่ระบบเรียน"</strong> ด้านล่าง แล้วกรอก<br/>
+                <strong>Email:</strong> ${data.email}<br/>
+                <strong>Password:</strong> ${data.bhc_code}
+              </td>
+            </tr>
+            <tr>
+              <td style="vertical-align:top;padding:8px 12px 8px 0">
+                <div style="background:#0369a1;color:white;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:14px">2</div>
+              </td>
+              <td style="padding:8px 0;font-size:14px;color:#334155">
+                เลือกคอร์ส <strong>Business Health Check</strong> แล้วเริ่มเรียนได้เลย!
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="text-align:center;margin:28px 0">
+          <a href="${loginUrl}" style="display:inline-block;background:#1e3a5f;color:white;padding:14px 40px;border-radius:12px;text-decoration:none;font-size:16px;font-weight:600">
+            เข้าสู่ระบบเรียน
+          </a>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
+        <p style="color:#64748b;font-size:13px;text-align:center">
+          หากมีคำถามหรือต้องการความช่วยเหลือ<br/>
+          <a href="${lineUrl}" style="color:#06C755;font-weight:600;text-decoration:none">💬 ติดต่อทีมงาน LINE @winwinwealth</a>
+        </p>
+        <p style="color:#94a3b8;font-size:12px;text-align:center">ทีมงาน WinWin Wealth Creation</p>
       </div>
     `
 
@@ -129,6 +189,19 @@ export class BhcRegistrationsService {
       facebook_name, accounting_problem, channel,
       course_accept, copyright_accept } = data
 
+    // Check duplicate email
+    const existing = await this.prisma.$queryRaw<any[]>`
+      SELECT bhc_code, full_name, email FROM bhc_registrations
+      WHERE email = ${email}
+      ORDER BY created_at DESC LIMIT 1
+    `
+    if (existing.length > 0) {
+      const ex = existing[0]
+      this.logger.log(`Duplicate email ${email} — returning existing ${ex.bhc_code}`)
+      this.sendWelcomeEmail({ email: ex.email, full_name: ex.full_name, bhc_code: ex.bhc_code })
+      return { bhc_code: ex.bhc_code, full_name: ex.full_name, email: ex.email, existing: true }
+    }
+
     // 1. Generate BHC code
     const bhc_code = await this.generateBhcCode()
 
@@ -147,7 +220,7 @@ export class BhcRegistrationsService {
     const record = rows[0]
 
     // 3. Enroll Fluent Community (fire-and-forget)
-    this.enrollFluentCommunity({ email, full_name }).then(async () => {
+    this.enrollFluentCommunity({ email, full_name, bhc_code }).then(async () => {
       await this.prisma.$queryRaw`
         UPDATE bhc_registrations SET enrolled_at = NOW()
         WHERE id = ${record.id}::uuid

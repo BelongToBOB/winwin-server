@@ -14,6 +14,7 @@ import { BucModule } from './buc/buc.module'
 import { CloudinaryModule } from './cloudinary/cloudinary.module'
 import { BhcRegistrationsModule } from './bhc-registrations/bhc-registrations.module'
 import { PrivateConsultModule } from './private-consult/private-consult.module'
+import { OfcRegistrationsModule } from './ofc-registrations/ofc-registrations.module'
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { PrivateConsultModule } from './private-consult/private-consult.module'
     CloudinaryModule,
     BhcRegistrationsModule,
     PrivateConsultModule,
+    OfcRegistrationsModule,
   ],
 })
 export class AppModule {}
